@@ -26,8 +26,8 @@ SOFTWARE.
 #define ENUMLIB_EXTENUM_HPP
 
 #include "fplll_types.h"
-#include <fplll/defs.h>
-#include <fplll/enum/enumerate_ext_api.h>
+#include "../defs.h"
+#include "../enum/enumerate_ext_api.h"
 
 FPLLL_BEGIN_NAMESPACE
 

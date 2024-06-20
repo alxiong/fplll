@@ -31,6 +31,7 @@ endif()
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_SYSROOT $ENV{SDKROOT})
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 
 # Find system dependencies
 # GMP
@@ -93,13 +94,9 @@ else()
 endif()
 
 # Define project specific variables
-# TODO: (alex) revert
-# set(FPLLL_MAX_ENUM_DIM 256)
-set(FPLLL_MAX_ENUM_DIM 0)
+set(FPLLL_MAX_ENUM_DIM 256)
 set(FPLLL_WITH_RECURSIVE_ENUM 1)
-# TODO: (alex) revert
-# set(FPLLL_MAX_PARALLEL_ENUM_DIM 120)
-set(FPLLL_MAX_PARALLEL_ENUM_DIM 0)
+set(FPLLL_MAX_PARALLEL_ENUM_DIM 120)
 
 # Use external enumeration
 option(WITH_EXTENUM_DIR "Specify external enumeration library install directory" OFF)
@@ -277,21 +274,6 @@ target_link_libraries(libfplll_dynlib PRIVATE ${LIBFPLLL_LIBS})
 target_link_libraries(libfplll_static PRIVATE ${LIBFPLLL_LIBS})
 if(DEBUG)
   target_link_libraries(libfplll_debug PRIVATE ${LIBFPLLL_LIBS})
-endif()
-
-# libfplll_la_LDFLAGS in fplll/Makefile.am
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-  target_link_options(libfplll_dynlib PRIVATE
-    -Wl,-no-undefined
-    -Wl,-version-info ${LIBFPLLL_VERSION}
-    ${PTHREAD_CFLAGS}
-  )
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  target_link_options(libfplll_dynlib PRIVATE
-    # MacOS's ld already err on undefined by default
-    -Wl,-current_version,${LIBFPLLL_VERSION}
-    ${PTHREAD_CFLAGS}
-  )
 endif()
 
 # libfplll_la_CXXFLAGS in fplll/Makefile.am

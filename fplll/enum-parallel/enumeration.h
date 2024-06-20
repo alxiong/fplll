@@ -26,7 +26,7 @@ SOFTWARE.
 #define ENUMLIB_ENUMERATION_HPP
 
 #include "fplll_types.h"
-#include <fplll/threadpool.h>
+#include "../threadpool.h"
 
 #include <algorithm>
 #include <array>

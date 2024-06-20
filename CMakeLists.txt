@@ -2,10 +2,10 @@
 # This aims to work almost identical to libtool-based compilation pipeline.
 # At project root, run:
 # $ mkdir build && cd build/
-# $ cmake -DMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
+# $ cmake -DCMAKE_INSTALL_PREFIX=$VIRTUAL_ENV ..
 
 # Minimum required CMake version
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Project/Package name and version
@@ -368,11 +368,8 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/strategies/default.json" DESTINATION 
 # tests
 # ${TOPSRCDIR} in tests/Makefile.am
 set(TOPSRCDIR ${CMAKE_CURRENT_SOURCE_DIR})
-find_path(INSTALLED_FPLLL_H fplll.h PATHS "${FPLLL_PKG_INCLUDEDIR}")
-if (INSTALLED_FPLLL_H)
+if (BUILD_TESTS)
   add_subdirectory(tests)
-else()
-  message(WARNING "run `make install` to install header files, then run `make` again")
 endif()
 
 # extra Makefile target

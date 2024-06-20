@@ -245,6 +245,7 @@ set(LIBFPLLL_SOURCES
   householder.cpp householder.h hlll.cpp hlll.h
   io/json.hpp
   threadpool.h threadpool.cpp io/thread_pool.hpp
+  foo.cpp
 )
 if (FPLLL_MAX_PARALLEL_ENUM_DIM GREATER 0)
   list(APPEND LIBFPLLL_SOURCES

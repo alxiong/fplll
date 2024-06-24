@@ -45,7 +45,7 @@ SOFTWARE.
 #include <thread>
 #include <vector>
 
-#include <fplll/defs.h>
+#include "../defs.h"
 
 FPLLL_BEGIN_NAMESPACE
 

@@ -25,8 +25,8 @@ SOFTWARE.
 #ifndef EXTENUM_FPLLL_TYPES_HPP
 #define EXTENUM_FPLLL_TYPES_HPP
 
-#include <fplll/defs.h>
-#include <fplll/enum/enumerate_ext.h>
+#include "../defs.h"
+#include "../enum/enumerate_ext.h"
 
 FPLLL_BEGIN_NAMESPACE
 

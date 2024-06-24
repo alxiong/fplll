@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <fplll/fplll_config.h>
+#include "../fplll_config.h"
 
 #ifdef ENUMDIMENSION
 #if ENUMDIMENSION <= FPLLL_MAX_PARALLEL_ENUM_DIM

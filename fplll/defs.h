@@ -165,7 +165,8 @@ enum RedStatus
   RED_HLLL_NORM_FAILURE = 10,
   RED_HLLL_SR_FAILURE   = 11,
   RED_URL_ERR           = 12,
-  RED_STATUS_MAX        = 13
+  RED_EARLY_RET         = 13,
+  RED_STATUS_MAX        = 14
 };
 
 const char *const RED_STATUS_STR[RED_STATUS_MAX] = {
@@ -181,6 +182,7 @@ const char *const RED_STATUS_STR[RED_STATUS_MAX] = {
     "error in HLLL",
     "increase of the norm",
     "error in weak size reduction",
+    "early return since predicate is satisified",
     "Please see https://github.com/fplll/fplll/wiki/fplll-errors-FAQ for more information."};
 
 enum LLLMethod

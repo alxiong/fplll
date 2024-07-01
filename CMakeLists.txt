@@ -27,8 +27,8 @@ else()
   message(WARNING "!! We recommend that you use clang-14 for this bootcamp. You're using ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}, which is not clang.")
 endif()
 
-# standard library use c++11
-set(CMAKE_CXX_STANDARD 11)
+# standard library use c++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_SYSROOT $ENV{SDKROOT})
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
@@ -94,9 +94,15 @@ else()
 endif()
 
 # Define project specific variables
-set(FPLLL_MAX_ENUM_DIM 256)
-set(FPLLL_WITH_RECURSIVE_ENUM 1)
-set(FPLLL_MAX_PARALLEL_ENUM_DIM 120)
+if (DEV)
+  set(FPLLL_MAX_ENUM_DIM 0)
+  set(FPLLL_WITH_RECURSIVE_ENUM 1)
+  set(FPLLL_MAX_PARALLEL_ENUM_DIM 0)
+else()
+  set(FPLLL_MAX_ENUM_DIM 256)
+  set(FPLLL_WITH_RECURSIVE_ENUM 1)
+  set(FPLLL_MAX_PARALLEL_ENUM_DIM 120)
+endif()
 
 # Use external enumeration
 option(WITH_EXTENUM_DIR "Specify external enumeration library install directory" OFF)
@@ -188,7 +194,7 @@ configure_file(
 # Compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3")
 ## enabled via -DDEBUG
-if(DEBUG)
+if(DEBUG OR DEV)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 endif()
 

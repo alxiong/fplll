@@ -16,6 +16,7 @@
 #include "test_utils.h"
 #include <cstring>
 #include <fplll/fplll.h>
+#include <functional>
 
 using namespace std;
 using namespace fplll;
@@ -31,14 +32,14 @@ using namespace fplll;
    @return zero on success.
 */
 
-template <class ZT> int test_test(ZZ_mat<ZT> &A)
+template <class Z> int test_test(ZZ_mat<Z> &A)
 {
-  ZZ_mat<ZT> U;
-  ZZ_mat<ZT> UT;
+  ZZ_mat<Z> U;
+  ZZ_mat<Z> UT;
 
-  MatGSO<Z_NR<ZT>, FP_NR<mpfr_t>> M(A, U, UT, 0);
+  MatGSO<Z_NR<Z>, FP_NR<mpfr_t>> M(A, U, UT, 0);
 
-  int is_reduced = is_lll_reduced<Z_NR<ZT>, FP_NR<mpfr_t>>(M, LLL_DEF_DELTA, LLL_DEF_ETA);
+  int is_reduced = is_lll_reduced<Z_NR<Z>, FP_NR<mpfr_t>>(M, LLL_DEF_DELTA, LLL_DEF_ETA);
 
   if (is_reduced)
     cerr << "is_lll_reduced reports success when it should not" << endl;
@@ -58,13 +59,13 @@ template <class ZT> int test_test(ZZ_mat<ZT> &A)
    @return zero on success.
 */
 
-template <class ZT>
-int test_lll(ZZ_mat<ZT> &A, LLLMethod method, FloatType float_type, int flags = LLL_DEFAULT,
+template <class Z>
+int test_lll(ZZ_mat<Z> &A, LLLMethod method, FloatType float_type, int flags = LLL_DEFAULT,
              int prec = 0)
 {
 
-  ZZ_mat<ZT> U;
-  ZZ_mat<ZT> UT;
+  ZZ_mat<Z> U;
+  ZZ_mat<Z> UT;
 
   int status = 0;
 
@@ -86,10 +87,10 @@ int test_lll(ZZ_mat<ZT> &A, LLLMethod method, FloatType float_type, int flags = 
 
   const int old_prec = prec ? FP_NR<mpfr_t>::set_prec(prec) : 0;
 
-  MatGSO<Z_NR<ZT>, FP_NR<mpfr_t>> M(A, U, UT, 0);
+  MatGSO<Z_NR<Z>, FP_NR<mpfr_t>> M(A, U, UT, 0);
 
   // one on success
-  status = is_lll_reduced<Z_NR<ZT>, FP_NR<mpfr_t>>(M, LLL_DEF_DELTA, LLL_DEF_ETA);
+  status = is_lll_reduced<Z_NR<Z>, FP_NR<mpfr_t>>(M, LLL_DEF_DELTA, LLL_DEF_ETA);
 
   if (prec)
     FP_NR<mpfr_t>::set_prec(old_prec);
@@ -113,14 +114,14 @@ int test_lll(ZZ_mat<ZT> &A, LLLMethod method, FloatType float_type, int flags = 
    @return zero on success
 */
 
-template <class ZT>
+template <class Z>
 int test_filename(const char *input_filename, LLLMethod method, FloatType float_type = FT_DEFAULT,
                   int flags = LLL_DEFAULT, int prec = 0)
 {
-  ZZ_mat<ZT> A;
+  ZZ_mat<Z> A;
   int status = 0;
   status |= read_file(A, input_filename);
-  status |= test_lll<ZT>(A, method, float_type, flags, prec);
+  status |= test_lll<Z>(A, method, float_type, flags, prec);
   return status;
 }
 
@@ -137,14 +138,14 @@ int test_filename(const char *input_filename, LLLMethod method, FloatType float_
    @return zero on success
 */
 
-template <class ZT>
+template <class Z>
 int test_int_rel(int d, int b, LLLMethod method, FloatType float_type = FT_DEFAULT,
                  int flags = LLL_DEFAULT, int prec = 0)
 {
-  ZZ_mat<ZT> A;
+  ZZ_mat<Z> A;
   A.resize(d, d + 1);
   A.gen_intrel(b);
-  return test_lll<ZT>(A, method, float_type, flags, prec);
+  return test_lll<Z>(A, method, float_type, flags, prec);
 }
 
 int main(int /*argc*/, char ** /*argv*/)
@@ -169,6 +170,47 @@ int main(int /*argc*/, char ** /*argv*/)
                                  LLL_DEFAULT | LLL_EARLY_RED);
   status |= test_filename<mpz_t>(TESTDATADIR "/tests/lattices/example_in", LM_HEURISTIC, FT_DEFAULT,
                                  LLL_DEFAULT | LLL_EARLY_RED);
+
+  // test early-return predicate, which require direct invocation of LLLReduction.lll()
+  // instead of via the Wrapper, as the ZT, FT both has to be known to define `pred`
+  std::function<bool(MatGSOInterface<Z_NR<mpz_t>, FP_NR<mpfr_t>> *)> pred;
+  pred = [](MatGSOInterface<Z_NR<mpz_t>, FP_NR<mpfr_t>> * m) {
+    return m->get_rows_of_b() % 2 == 0;
+  };
+  int d = 50, b = 1000;
+  ZZ_mat<mpz_t> A, U, UT;
+  A.resize(d, d + 1);
+  A.gen_intrel(b);
+
+  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M(A, U, UT, 0);
+  LLLReduction<Z_NR<mpz_t>, FP_NR<mpfr_t>> lll_obj(M, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_DEFAULT);
+  status |= lll_obj.lll(0, 0, -1, 0, pred) == 0;
+  if (lll_obj.status != RED_EARLY_RET) {
+    cerr << "Fail to early-return on trivial predicate" << endl;
+    return -1;
+  }
+
+  // a slightly more realistic predicate
+  // this is also probabilistically satisified, but most likely the B[0].norm is not that big
+  std::function<bool(MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> *)> pred2 = [](MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> *m) {
+    Z_NR<mpz_t> res;
+    m->b[0].dot_product(res, m->b[0]);
+    return res < 10000000000000;
+  };
+  // one complication is the dyanmic pointer casting from derived class to base class
+  std::function<bool(MatGSOInterface<Z_NR<mpz_t>, FP_NR<mpfr_t>> *)> wrapped_pred2;
+  wrapped_pred2 = [pred2](MatGSOInterface<Z_NR<mpz_t>, FP_NR<mpfr_t>> *m) {
+    MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>>* derived_m = dynamic_cast<MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>>*>(m);
+    if (derived_m != nullptr) {
+      return pred2(derived_m);
+    }
+    return false;
+  };
+  status |= lll_obj.lll(0, 0, -1, 0, wrapped_pred2) == 0;
+  if (lll_obj.status != RED_EARLY_RET) {
+    cerr << "Fail to early-return on trivial predicate" << endl;
+    return -1;
+  }
 
   if (status == 0)
   {

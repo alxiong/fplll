@@ -43,7 +43,7 @@ LLLReduction<ZT, FT>::LLLReduction(MatGSOInterface<ZT, FT> &m, double delta, dou
 
 template <class ZT, class FT>
 bool LLLReduction<ZT, FT>::lll(int kappa_min, int kappa_start, int kappa_end,
-                               int size_reduction_start)
+                               int size_reduction_start, const std::function<bool(MatGSOInterface<ZT, FT> *)> &pred)
 {
   if (kappa_end == -1)
     kappa_end = m.d;
@@ -152,6 +152,10 @@ bool LLLReduction<ZT, FT>::lll(int kappa_min, int kappa_start, int kappa_end,
 
     m.set_r(kappa, kappa, lovasz_tests[kappa]);
     kappa++;
+
+    if (pred(&m)) {
+      return set_status(RED_EARLY_RET);
+    }
   }
   // Symmetrize the Gram matrix
   if (m.enable_int_gram)

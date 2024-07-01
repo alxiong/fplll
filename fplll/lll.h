@@ -20,6 +20,7 @@
 
 #include "gso.h"
 #include "gso_interface.h"
+#include <functional>
 
 FPLLL_BEGIN_NAMESPACE
 
@@ -46,11 +47,13 @@ public:
      @param kappa_start index to start processing at
      @param kappa_end end index (exclusive)
      @param size_reduction_start only perform size reductions using vectors starting at this index
+     @param pred a predicate to test partial-reduced b for early return when evaluated to true
      @return success or failure (due to numerical instability)
   */
 
   bool lll(int kappa_min = 0, int kappa_start = 0, int kappa_end = -1,
-           int size_reduction_start = 0);
+           int size_reduction_start = 0,
+           const std::function<bool(MatGSOInterface<ZT, FT> *)> &pred = [](MatGSOInterface<ZT, FT>*){ return false; });
 
   /**
      @brief Size reduction.
@@ -159,13 +162,17 @@ template <class ZT, class FT> inline bool LLLReduction<ZT, FT>::set_status(int n
     {
       cerr << "End of LLL: success" << endl;
     }
+    else if (status == RED_EARLY_RET)
+    {
+      cerr << "Early return of LLL: success" << endl;
+    }
     else
     {
       cerr << "End of LLL: failure: " << RED_STATUS_STR[status] << endl;
       cerr << RED_STATUS_STR[RedStatus::RED_URL_ERR] << endl;
     }
   }
-  return status == RED_SUCCESS;
+  return status == RED_SUCCESS || status == RED_EARLY_RET;
 }
 
 FPLLL_END_NAMESPACE

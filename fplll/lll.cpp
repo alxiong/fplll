@@ -168,6 +168,144 @@ bool LLLReduction<ZT, FT>::lll(int kappa_min, int kappa_start, int kappa_end,
 }
 
 template <class ZT, class FT>
+bool LLLReduction<ZT, FT>::lll_iter_init(int kappa_min, int kappa_start, int kappa_end, int size_reduction_start)
+{
+  if (kappa_end == -1) {
+    tmp_kappa_end = m.d;
+  } else {
+    tmp_kappa_end = kappa_end;
+  }
+
+  FPLLL_DEBUG_CHECK(kappa_min <= kappa_start && kappa_start < tmp_kappa_end && tmp_kappa_end <= m.d);
+
+  tmp_size_reduction_start = size_reduction_start;
+  tmp_kappa_min = kappa_min;
+  tmp_kappa = kappa_start + 1;
+  tmp_kappa_max = 0;
+  tmp_d = tmp_kappa_end - tmp_kappa_min;
+
+  zeros       = 0;
+  n_swaps     = 0;
+  final_kappa = 0;
+  if (verbose)
+    print_params();
+  extend_vect(lovasz_tests, tmp_kappa_end);
+  extend_vect(babai_mu, tmp_kappa_end);
+  extend_vect(babai_expo, tmp_kappa_end);
+
+  for (; zeros < tmp_d && m.b_row_is_zero(0); zeros++)
+  {
+    m.move_row(tmp_kappa_min, tmp_kappa_end - 1 - zeros);
+  }
+
+  if (zeros < tmp_d &&
+      ((kappa_start > 0 && !babai(kappa_start, kappa_start, tmp_size_reduction_start)) ||
+       !m.update_gso_row(kappa_start)))
+  {
+    final_kappa = kappa_start;
+    return false;
+  }
+
+  tmp_iter = 0;
+  tmp_max_iter = static_cast<long long>(tmp_d - 2 * tmp_d * (tmp_d + 1) *
+                                            ((m.get_max_exp_of_b() + 3) / std::log(delta.get_d())));
+  return true;
+}
+
+template <class ZT, class FT>
+bool LLLReduction<ZT, FT>::lll_iter_next(int step_size)
+{
+  for (int step=0; tmp_iter < tmp_max_iter && tmp_kappa < tmp_kappa_end - zeros && step < step_size; step++, tmp_iter++)
+  {
+    if (tmp_kappa > tmp_kappa_max)
+    {
+      if (verbose)
+      {
+        cerr << "Discovering vector " << tmp_kappa - tmp_kappa_min + 1 + zeros << "/" << tmp_d << endl;
+      }
+      tmp_kappa_max = tmp_kappa;
+      if (enable_early_red && is_power_of_2(tmp_kappa) && tmp_kappa > last_early_red)
+      {
+        if (!early_reduction(tmp_kappa, tmp_size_reduction_start))
+        {
+          final_kappa = tmp_kappa;
+          return false;
+        }
+      }
+    }
+
+    // Lazy size reduction
+    if (!babai(tmp_kappa, tmp_kappa, tmp_size_reduction_start))
+    {
+      final_kappa = tmp_kappa;
+      return false;
+    }
+
+    // Tests Lovasz's condition
+    m.get_gram(lovasz_tests[0], tmp_kappa, tmp_kappa);
+    for (int i = 1; i <= tmp_kappa; i++)
+    {
+      ftmp1.mul(m.get_mu_exp(tmp_kappa, i - 1), m.get_r_exp(tmp_kappa, i - 1));
+      lovasz_tests[i].sub(lovasz_tests[i - 1], ftmp1);
+    }
+    ftmp1.mul(m.get_r_exp(tmp_kappa - 1, tmp_kappa - 1), swap_threshold);
+    if (m.enable_row_expo)
+    {
+      ftmp1.mul_2si(ftmp1, 2 * (m.row_expo[tmp_kappa - 1] - m.row_expo[tmp_kappa]));
+    }
+
+    if (ftmp1 > lovasz_tests[siegel ? tmp_kappa : tmp_kappa - 1])
+    {
+      n_swaps++;
+      // Failure, computes the insertion index
+      int old_k = tmp_kappa;
+      for (tmp_kappa--; tmp_kappa > tmp_kappa_min; tmp_kappa--)
+      {
+        ftmp1.mul(m.get_r_exp(tmp_kappa - 1, tmp_kappa - 1), swap_threshold);
+        if (m.enable_row_expo)
+        {
+          ftmp1.mul_2si(ftmp1, 2 * (m.row_expo[tmp_kappa - 1] - m.row_expo[old_k]));
+        }
+        if (ftmp1 < lovasz_tests[siegel ? tmp_kappa : tmp_kappa - 1])
+          break;
+      }
+      // Moves the vector
+      if (lovasz_tests[tmp_kappa] > 0)
+      {
+        m.move_row(old_k, tmp_kappa);
+      }
+      else
+      {
+        zeros++;
+        m.move_row(old_k, tmp_kappa_end - zeros);
+        tmp_kappa = old_k;
+        continue;
+      }
+    }
+
+    m.set_r(tmp_kappa, tmp_kappa, lovasz_tests[tmp_kappa]);
+    tmp_kappa++;
+  }
+
+  if (tmp_kappa >= tmp_kappa_end - zeros)
+  {
+    if (m.enable_int_gram)
+      m.symmetrize_g();
+    return set_status(RED_SUCCESS);
+  }
+  else if (tmp_iter >= tmp_max_iter)
+  {
+    if (m.enable_int_gram)
+      m.symmetrize_g();
+    return set_status(RED_LLL_FAILURE);
+  }
+  else
+  {
+    return set_status(RED_EARLY_RET);
+  }
+}
+
+template <class ZT, class FT>
 bool LLLReduction<ZT, FT>::babai(int kappa, int size_reduction_end, int size_reduction_start)
 {
   // FPLLL_TRACE_IN("kappa=" << kappa);

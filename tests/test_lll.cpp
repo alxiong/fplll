@@ -192,7 +192,10 @@ int main(int /*argc*/, char ** /*argv*/)
 
   // a slightly more realistic predicate
   // this is also probabilistically satisified, but most likely the B[0].norm is not that big
-  std::function<bool(MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> *)> pred2 = [](MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> *m) {
+  A.gen_intrel(b);
+  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M2(A, U, UT, 0);
+  LLLReduction<Z_NR<mpz_t>, FP_NR<mpfr_t>> lll_obj2(M2, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_DEFAULT);
+  const std::function<bool(MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> *)> pred2 = [](MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> *m) {
     Z_NR<mpz_t> res;
     m->b[0].dot_product(res, m->b[0]);
     return res < 10000000000000;
@@ -206,10 +209,27 @@ int main(int /*argc*/, char ** /*argv*/)
     }
     return false;
   };
-  status |= lll_obj.lll(0, 0, -1, 0, wrapped_pred2) == 0;
-  if (lll_obj.status != RED_EARLY_RET) {
+  status |= lll_obj2.lll(0, 0, -1, 0, wrapped_pred2) == 0;
+  if (lll_obj2.status != RED_EARLY_RET) {
     cerr << "Fail to early-return on trivial predicate" << endl;
+    cerr << "got status: " << lll_obj2.status << endl;
     return -1;
+  }
+
+
+  // test iter-based lll
+  A.gen_intrel(b);
+  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> M3(A, U, UT, 0);
+  LLLReduction<Z_NR<mpz_t>, FP_NR<mpfr_t>> lll_obj3(M3, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_DEFAULT);
+  status |= lll_obj3.lll_iter_init() == 0;
+  for (long long iter = 0; iter < 50000; iter++) {
+    status |= lll_obj3.lll_iter_next() == 0;
+    if (lll_obj3.status != RED_EARLY_RET) {
+      cerr << "lll_obj2.status: " << lll_obj3.status << " at iter: " << iter << endl;
+      return -1;
+    }
+    if (wrapped_pred2(&lll_obj3.m))
+      break;
   }
 
   if (status == 0)
@@ -219,6 +239,7 @@ int main(int /*argc*/, char ** /*argv*/)
   }
   else
   {
+    cerr << "Some tests failed." << endl;
     return -1;
   }
 }

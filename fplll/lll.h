@@ -56,6 +56,17 @@ public:
            const std::function<bool(MatGSOInterface<ZT, FT> *)> &pred = [](MatGSOInterface<ZT, FT>*){ return false; });
 
   /**
+     @brief Single-step/iteration LLL, initialization.
+     @return success or failure (due to numerical instability)
+  */
+  bool lll_iter_init(int kappa_min = 0, int kappa_start = 0, int kappa_end = -1, int size_reduction_start = 0);
+  /**
+     @brief Single-step/iteration LLL, take `step_size` number of iterations/steps.
+     @return success or failure (due to numerical instability)
+  */
+  bool lll_iter_next(int step_size=1);
+
+  /**
      @brief Size reduction.
 
      Perform size reduction for all vectors between `kappa_start` and `kappa_end`.
@@ -74,6 +85,8 @@ public:
   int zeros;
   int n_swaps;
 
+  // make public for `lll_iter_*()` usage
+  MatGSOInterface<ZT, FT> &m;
 private:
   /**
      @brief Size reduction.
@@ -89,7 +102,6 @@ private:
   inline void print_params();
   inline bool set_status(int new_status);
 
-  MatGSOInterface<ZT, FT> &m;
   FT delta, eta, swap_threshold;
 
   bool enable_early_red;
@@ -101,6 +113,12 @@ private:
   vector<long> babai_expo;
   ZT ztmp1;
   FT mu_m_ant, ftmp1;
+
+  // temporary states for single-iter-step lll
+  int tmp_size_reduction_start;
+  int tmp_kappa_min, tmp_kappa_end, tmp_kappa, tmp_kappa_max, tmp_d;
+  long long tmp_iter, tmp_max_iter;
+
 };
 
 template <class ZT, class FT>

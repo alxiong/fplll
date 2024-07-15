@@ -75,6 +75,13 @@ int shortest_vector_pruning(MatGSOInterface<Z_NR<mpz_t>, FP_NR<mpfr_t>> &gso,
 int closest_vector(ZZ_mat<mpz_t> &b, const vector<Z_NR<mpz_t>> &int_target,
                    vector<Z_NR<mpz_t>> &sol_coord, int method = CVPM_FAST, int flags = CVP_DEFAULT);
 
+/**
+ * @brief Classical CVP algorithm using LLL and Babai Nearest Plane */
+int closest_vector(vector<Z_NR<mpz_t>> &solution, vector<Z_NR<mpz_t>> &sol_coord,
+                   ZZ_mat<mpz_t> &bases, const vector<FP_NR<mpfr_t>> &target);
+int closest_vector(vector<Z_NR<mpz_t>> &solution, vector<Z_NR<mpz_t>> &sol_coord,
+                   ZZ_mat<mpz_t> &bases, const vector<Z_NR<mpz_t>> &target);
+
 FPLLL_END_NAMESPACE
 
 #endif

@@ -658,4 +658,42 @@ int closest_vector(ZZ_mat<mpz_t> &b, const vector<Z_NR<mpz_t>> &int_target,
   return result;
 }
 
+int closest_vector(vector<Z_NR<mpz_t>> &solution, vector<Z_NR<mpz_t>> &sol_coord,
+                   ZZ_mat<mpz_t> &bases, const vector<FP_NR<mpfr_t>> &target)
+{
+  ZZ_mat<mpz_t> U, UT;
+
+  // first LLL reduce the bases
+  MatGSO<Z_NR<mpz_t>, FP_NR<mpfr_t>> gso(bases, U, UT, LLL_DEFAULT);
+  LLLReduction<Z_NR<mpz_t>, FP_NR<mpfr_t>> lll_obj(gso, LLL_DEF_DELTA, LLL_DEF_ETA, LLL_DEFAULT);
+  lll_obj.lll();
+  int status = lll_obj.status;
+  if (status != RED_SUCCESS) {
+    cerr << "LLL reduction failed for CVP: " << get_red_status_str(status) << endl;
+    return status;
+  }
+
+  // then run Babai's nearest-plane algorithm
+  gso.babai(sol_coord, target, 0, -1);
+
+  // finally get the actual closest vector
+  vector_matrix_product(solution, sol_coord, bases);
+  return RED_SUCCESS;
+}
+
+int closest_vector(vector<Z_NR<mpz_t>> &solution, vector<Z_NR<mpz_t>> &sol_coord,
+                   ZZ_mat<mpz_t> &bases, const vector<Z_NR<mpz_t>> &target)
+{
+  vector<FP_NR<mpfr_t>> ft;
+  FP_NR<mpfr_t> tmp = 0.0;
+  for (size_t i = 0; i < target.size(); i++)
+  {
+    tmp.set_z(target[i]);
+    ft.push_back(tmp);
+  }
+
+  return closest_vector(solution, sol_coord, bases, ft);
+}
+
+
 FPLLL_END_NAMESPACE

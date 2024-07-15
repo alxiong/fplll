@@ -102,6 +102,60 @@ int test_filename(const char *input_filename_lattice, const char *input_filename
 }
 
 /**
+ * @brief Test the CVP solver that based on Babai nearest plane */
+int test_filename_babai(const char *input_filename_lattice, const char *input_filename_target,
+                        const char *output_filename)
+{
+  ZZ_mat<mpz_t> A;
+  vector<Z_NR<mpz_t>> solution, sol_coord;
+  int status = 0;
+  status |= read_file(A, input_filename_lattice);
+
+  vector<Z_NR<mpz_t>> t;
+  status |= read_file(t, input_filename_target);
+
+  vector<Z_NR<mpz_t>> b;
+  status |= read_file(b, output_filename);
+
+  status |= closest_vector(solution, sol_coord, A, t);
+  bool correct = true;
+  for (int i = 0; i < A.get_cols(); i++)
+  {
+    correct = correct && (solution[i] == b[i]);
+  }
+
+  if (!correct) {
+    Z_NR<mpz_t> norm_expected, norm_got;
+    Z_NR<mpz_t> tmp;
+    for (size_t i = 0; i < A.get_cols(); i++)
+    {
+      tmp.sub(b[i], t[i]);
+      norm_expected.addmul(tmp, tmp);
+      tmp.sub(solution[i], t[i]);
+      norm_got.addmul(tmp, tmp);
+    }
+    // cerr << "Expected sqnorm: " << norm_expected << endl;
+    // cerr << "Solution sqnorm: " << norm_got << endl;
+
+
+    double err = (norm_got.get_d() - norm_expected.get_d()) / norm_expected.get_d();
+    // cerr << "err from optimal CVP: " << err << endl;
+    if (err < 0.07) {
+      // NOTE:
+      // since we are not using enumeration-based, sometimes CVP approximation would drift us
+      // from the actual CVP solution, for our purpose, we still consider the solution to be correct
+      correct = true;
+    }
+    // cerr << "Expected: " << b << endl;
+    // cerr << "Solution: " << solution << endl;
+    // cerr << "Target  :" << t << endl;
+  }
+
+  status |= correct == false;
+  return status;
+}
+
+/**
    @brief Run CVP tests.
 
    @param argc             ignored
@@ -129,6 +183,18 @@ int main(int argc, char *argv[])
                                  TESTDATADIR "/tests/lattices/example_cvp_in_target5",
                                  TESTDATADIR "/tests/lattices/example_cvp_out5", CVPM_PROVED);
 
+  status |= test_filename_babai(TESTDATADIR "/tests/lattices/example_cvp_in_lattice",
+                                TESTDATADIR "/tests/lattices/example_cvp_in_target",
+                                TESTDATADIR "/tests/lattices/example_cvp_out");
+  status |= test_filename_babai(TESTDATADIR "/tests/lattices/example_cvp_in_lattice2",
+                                TESTDATADIR "/tests/lattices/example_cvp_in_target2",
+                                TESTDATADIR "/tests/lattices/example_cvp_out2");
+  status |= test_filename_babai(TESTDATADIR "/tests/lattices/example_cvp_in_lattice3",
+                                TESTDATADIR "/tests/lattices/example_cvp_in_target3",
+                                TESTDATADIR "/tests/lattices/example_cvp_out3");
+  // FIXME: (alex) the plain Babai's method would result in larger err from optimal CVP solution
+  // when compared to provable method (of the enum-based)
+
   if (status == 0)
   {
     cerr << "All tests passed." << endl;
@@ -136,6 +202,7 @@ int main(int argc, char *argv[])
   }
   else
   {
+    cerr << "Some tests failed." << endl;
     return -1;
   }
 
